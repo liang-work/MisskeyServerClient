@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive - Misskey Client</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+            --primary-color: #4a9eff;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dark-theme {
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --text-color: #e8e8e8;
+            --text-muted: #a0a0a0;
+            --border-color: #2a2a4a;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: var(--transition);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: var(--primary-gradient) !important;
+            box-shadow: var(--shadow-md);
+        }
+        .drive-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .drive-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        .file-item {
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+        .file-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+        .file-item.selected {
+            border-color: var(--primary-color);
+            background: rgba(74, 158, 255, 0.1);
+        }
+        .file-item img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .file-icon {
+            font-size: 3rem;
+            color: var(--text-muted);
+            margin: 1rem 0;
+        }
+        .file-name {
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-size {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .folder-item {
+            background: rgba(74, 158, 255, 0.1);
+            border: 2px dashed var(--primary-color);
+        }
+        .folder-item:hover {
+            background: rgba(74, 158, 255, 0.2);
+        }
+        .breadcrumb {
+            background: var(--bg-color);
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+        }
+        .breadcrumb-item { cursor: pointer; }
+        .breadcrumb-item:hover { color: var(--primary-color); }
+        .action-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .btn-action {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-action:hover { transform: translateY(-2px); }
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+        }
+        .custom-toast {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid var(--primary-color);
+        }
+        .custom-toast.success { border-left-color: #2ecc71; }
+        .custom-toast.error { border-left-color: #e74c3c; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 1.5rem;
+        }
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: rgba(74, 158, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand text-white" href="/">
+                <i class="bi bi-chat-quote me-2"></i>Misskey
+            </a>
+            <div class="d-flex gap-2">
+                <a href="/" class="btn btn-light btn-sm">
+                    <i class="bi bi-house me-1"></i>Home
+                </a>
+                <a href="/compose" class="btn btn-light btn-sm">
+                    <i class="bi bi-pencil me-1"></i>Compose
+                </a>
+                <a href="/settings" class="btn btn-light btn-sm">
+                    <i class="bi bi-gear me-1"></i>Settings
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="drive-container">
+        <div class="drive-card animate__animated animate__fadeInUp">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="mb-0 fw-bold">
+                    <i class="bi bi-cloud me-2" style="color: var(--primary-color);"></i>Drive
+                </h4>
+                <button class="btn btn-primary" @click="showCreateFolder = true">
+                    <i class="bi bi-folder-plus me-1"></i>New Folder
+                </button>
+            </div>
+            
+            <div class="breadcrumb">
+                <span class="breadcrumb-item" @click="navigateTo(null)">
+                    <i class="bi bi-house me-1"></i>Root
+                </span>
+                <span v-if="currentFolder" class="ms-2">/ [[ currentFolder.name ]]</span>
+            </div>
+            
+            <div class="upload-area" @click="$refs.fileInput.click()">
+                <i class="bi bi-cloud-upload fs-1" style="color: var(--primary-color);"></i>
+                <p class="mt-2 mb-0">Click to upload files or drag and drop</p>
+                <input type="file" ref="fileInput" @change="handleUpload" multiple style="display:none;">
+            </div>
+            
+            <div class="action-bar" v-if="selectedFiles.length > 0">
+                <button class="btn-action btn btn-danger" @click="deleteSelected">
+                    <i class="bi bi-trash me-1"></i>Delete ([[ selectedFiles.length ]])
+                </button>
+                <button class="btn-action btn btn-outline-primary" @click="copyToCompose">
+                    <i class="bi bi-plus me-1"></i>Add to Compose
+                </button>
+            </div>
+            
+            <div v-if="folders.length > 0" class="mb-4">
+                <h6 class="mb-3"><i class="bi bi-folder me-2"></i>Folders</h6>
+                <div class="file-grid">
+                    <div v-for="folder in folders" :key="folder.id" class="file-item folder-item" @click="navigateTo(folder)">
+                        <i class="bi bi-folder-fill file-icon" style="color: var(--primary-color);"></i>
+                        <div class="file-name">[[ folder.name ]]</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h6 class="mb-3"><i class="bi bi-file-earmark me-2"></i>Files</h6>
+                <div class="file-grid" v-if="files.length > 0">
+                    <div v-for="file in files" :key="file.id" 
+                         class="file-item" 
+                         :class="{selected: selectedFiles.includes(file.id)}"
+                         @click="toggleSelect(file.id)"
+                         @dblclick="previewFile(file)">
+                        <img v-if="file.type && file.type.startsWith('image/')" :src="file.thumbnailUrl || file.url">
+                        <i v-else class="bi bi-file-earmark-fill file-icon"></i>
+                        <div class="file-name">[[ file.name ]]</div>
+                        <div class="file-size">[[ formatSize(file.size) ]]</div>
+                    </div>
+                </div>
+                <div v-else class="text-center text-muted py-5">
+                    <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.5;"></i>
+                    <p class="mt-3">No files in this folder</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="filePreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content" v-if="previewingFile">
+                <div class="modal-header">
+                    <h5 class="modal-title">[[ previewingFile.name ]]</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img v-if="previewingFile.type && previewingFile.type.startsWith('image/')" 
+                         :src="previewingFile.url" class="img-fluid">
+                    <video v-else-if="previewingFile.type && previewingFile.type.startsWith('video/')" 
+                           :src="previewingFile.url" controls style="max-width:100%;"></video>
+                    <div v-else class="p-5">
+                        <i class="bi bi-file-earmark" style="font-size: 5rem;"></i>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-danger" @click="deleteFile(previewingFile)">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                    <a :href="previewingFile.url" class="btn btn-primary" target="_blank" download>
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="fileEditModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit File</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">File Name</label>
+                        <input type="text" class="form-control" v-model="editingFile.name">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" @click="saveFileEdit">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="createFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Folder Name</label>
+                        <input type="text" class="form-control" v-model="newFolderName" @keyup.enter="createFolder">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" @click="createFolder">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script>
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `custom-toast ${type}`;
+            toast.innerHTML = `<i class="bi ${type === 'success' ? 'bi-check-circle-fill' : type === 'error' ? 'bi-x-circle-fill' : 'bi-info-circle-fill'}" style="font-size:1.5rem;color:var(--primary-color)"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        const translations = {
+            en: {
+                'drive': 'Drive', 'new_folder': 'New Folder', 'root': 'Root', 'upload_files': 'Click to upload files or drag and drop',
+                'delete': 'Delete', 'add_to_compose': 'Add to Compose', 'folders': 'Folders', 'files': 'Files',
+                'no_files': 'No files in this folder', 'edit_file': 'Edit File', 'file_name': 'File Name',
+                'create_folder': 'Create Folder', 'folder_name': 'Folder Name', 'create': 'Create', 'cancel': 'Cancel',
+                'download': 'Download', 'delete_confirm': 'Delete selected files?'
+            },
+            'zh-CN': {
+                'drive': '云盘', 'new_folder': '新建文件夹', 'root': '根目录', 'upload_files': '点击上传文件或拖拽文件到此处',
+                'delete': '删除', 'add_to_compose': '添加到发布', 'folders': '文件夹', 'files': '文件',
+                'no_files': '此文件夹中没有文件', 'edit_file': '编辑文件', 'file_name': '文件名',
+                'create_folder': '创建文件夹', 'folder_name': '文件夹名称', 'create': '创建', 'cancel': '取消',
+                'download': '下载', 'delete_confirm': '确定删除选中的文件？'
+            }
+        };
+
+        async function dbInit() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('MisskeyClientDB', 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'key' });
+                };
+            });
+        }
+
+        async function dbGet(key) {
+            return new Promise((resolve) => {
+                const request = indexedDB.open('MisskeyClientDB', 1);
+                request.onsuccess = () => {
+                    const db = request.result;
+                    const tx = db.transaction('settings', 'readonly');
+                    const store = tx.objectStore('settings');
+                    const getRequest = store.get(key);
+                    getRequest.onsuccess = () => resolve(getRequest.result?.value);
+                };
+            });
+        }
+
+        createApp({
+            delimiters: ['[[', ']]'],
+            data() {
+                return {
+                    lang: 'en',
+                    files: [], folders: [], currentFolder: null, selectedFiles: [],
+                    previewingFile: null, editingFile: null, newFolderName: '',
+                    showCreateFolder: false
+                };
+            },
+            computed: {
+                tr() {
+                    return (key) => translations[this.lang]?.[key] || translations.en[key] || key;
+                }
+            },
+            async mounted() {
+                await dbInit();
+                this.lang = localStorage.getItem('misskey_language') || 'en';
+                const theme = await dbGet('theme');
+                if (theme === 'dark') document.body.classList.add('dark-theme');
+                await this.loadFiles();
+            },
+            methods: {
+                async loadFiles() {
+                    try {
+                        const url = this.currentFolder 
+                            ? `/api/drive/files?folder_id=${this.currentFolder.id}`
+                            : '/api/drive/files';
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        if (Array.isArray(data)) {
+                            this.files = data.filter(f => !f.folderId);
+                        }
+                    } catch (e) { console.error(e); }
+                    this.loadFolders();
+                },
+                async loadFolders() {
+                    try {
+                        const url = this.currentFolder
+                            ? `/api/drive/folders?folder_id=${this.currentFolder.id}`
+                            : '/api/drive/folders';
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        if (Array.isArray(data)) this.folders = data;
+                    } catch (e) { console.error(e); }
+                },
+                navigateTo(folder) {
+                    this.currentFolder = folder;
+                    this.selectedFiles = [];
+                    this.loadFiles();
+                },
+                async handleUpload(event) {
+                    for (let i = 0; i < event.target.files.length; i++) {
+                        await this.uploadFile(event.target.files[i]);
+                    }
+                },
+                async uploadFile(file) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        if (this.currentFolder) formData.append('folder_id', this.currentFolder.id);
+                        const res = await fetch('/api/drive/files/create', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (!data.error) {
+                            this.files.unshift(data);
+                            showToast('File uploaded!', 'success');
+                        } else showToast(data.error, 'error');
+                    } catch (e) { showToast('Upload failed: ' + e, 'error'); }
+                },
+                toggleSelect(id) {
+                    const i = this.selectedFiles.indexOf(id);
+                    if (i > -1) this.selectedFiles.splice(i, 1);
+                    else this.selectedFiles.push(id);
+                },
+                async deleteSelected() {
+                    if (!confirm(`Delete ${this.selectedFiles.length} files?`)) return;
+                    for (const id of this.selectedFiles) {
+                        await this.deleteFile({ id });
+                    }
+                    this.selectedFiles = [];
+                },
+                async deleteFile(file) {
+                    try {
+                        const res = await fetch('/api/drive/files/delete', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ file_id: file.id })
+                        });
+                        const data = await res.json();
+                        if (!data.error) {
+                            this.files = this.files.filter(f => f.id !== file.id);
+                            showToast('File deleted!', 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('filePreviewModal'))?.hide();
+                        } else showToast(data.error, 'error');
+                    } catch (e) { showToast('Delete failed: ' + e, 'error'); }
+                },
+                previewFile(file) {
+                    this.previewingFile = file;
+                    new bootstrap.Modal(document.getElementById('filePreviewModal')).show();
+                },
+                saveFileEdit() {
+                    // Implementation for editing file metadata
+                    bootstrap.Modal.getInstance(document.getElementById('fileEditModal'))?.hide();
+                },
+                async createFolder() {
+                    if (!this.newFolderName.trim()) return;
+                    try {
+                        const body = { name: this.newFolderName };
+                        if (this.currentFolder) body.folder_id = this.currentFolder.id;
+                        const res = await fetch('/api/drive/folders/create', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(body)
+                        });
+                        const data = await res.json();
+                        if (!data.error) {
+                            this.folders.push(data);
+                            showToast('Folder created!', 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('createFolderModal'))?.hide();
+                            this.newFolderName = '';
+                        } else showToast(data.error, 'error');
+                    } catch (e) { showToast('Failed: ' + e, 'error'); }
+                },
+                copyToCompose() {
+                    const filesToUse = this.files.filter(f => this.selectedFiles.includes(f.id));
+                    sessionStorage.setItem('composeFiles', JSON.stringify(filesToUse));
+                    window.location.href = '/compose';
+                },
+                formatSize(bytes) {
+                    if (!bytes) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

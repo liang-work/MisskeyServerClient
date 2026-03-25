@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misskey Client</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --border-color: #dee2e6;
+            --primary-color: #4a9eff;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dark-theme {
+            --bg-color: #1a1a2e;
+            --card-bg: #16213e;
+            --text-color: #e8e8e8;
+            --text-muted: #a0a0a0;
+            --border-color: #2a2a4a;
+            --primary-color: #667eea;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: var(--transition);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow-x: hidden;
+        }
+        .navbar {
+            background: var(--primary-gradient) !important;
+            box-shadow: var(--shadow-md);
+            padding: 0.75rem 0;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white !important;
+            letter-spacing: -0.5px;
+        }
+        .nav-icon {
+            transition: var(--transition);
+            opacity: 0.9;
+        }
+        .nav-icon:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .card {
+            background: var(--card-bg);
+            border: none;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        .note-card {
+            transition: var(--transition);
+            transform: translateY(0);
+        }
+        .note-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        .note-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            transition: var(--transition);
+        }
+        .note-avatar:hover {
+            transform: scale(1.1);
+        }
+        .note-username {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .note-acct {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        .note-content {
+            margin-top: 0.5rem;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+        .note-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .note-action {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            background: none;
+            border: none;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+        }
+        .note-action:hover {
+            color: var(--primary-color);
+            background: rgba(74, 158, 255, 0.1);
+            transform: scale(1.05);
+        }
+        .note-action.liked { color: #e74c3c; }
+        .note-action.renoted { color: #2ecc71; }
+        .note-action.favorited { color: #f39c12; }
+        .compose-box {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-md);
+        }
+        .compose-textarea {
+            width: 100%;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            resize: none;
+            font-size: 1rem;
+            outline: none;
+            min-height: 120px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+        .compose-textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.15);
+        }
+        .compose-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .compose-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .toolbar-btn {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        .toolbar-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        .btn-compose {
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            padding: 10px 28px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-compose:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            color: white;
+        }
+        .btn-compose:disabled { opacity: 0.6; transform: none; }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 20px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .tab-btn:hover { color: var(--primary-color); }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        .user-card {
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+        .user-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .notification-item {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--card-bg);
+        }
+        .notification-item:hover {
+            background: rgba(74, 158, 255, 0.08);
+            transform: translateX(4px);
+        }
+        .notification-item.unread {
+            background: rgba(74, 158, 255, 0.08);
+            border-left: 3px solid var(--primary-color);
+        }
+        .cw-text {
+            color: #e74c3c;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .hashtag, .link {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .hashtag:hover, .link:hover {
+            text-decoration: underline;
+        }
+        .mention { color: #9b59b6; }
+        .quote-note {
+            border-left: 3px solid var(--primary-color);
+            padding-left: 1rem;
+            margin: 0.75rem 0;
+            color: var(--text-muted);
+            background: var(--bg-color);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            padding: 0.75rem 1rem;
+        }
+        .tag-badge {
+            background: rgba(74, 158, 255, 0.15);
+            color: var(--primary-color);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .tag-badge:hover {
+            background: rgba(74, 158, 255, 0.3);
+            transform: scale(1.05);
+        }
+        .file-preview {
+            position: relative;
+            display: inline-block;
+            margin: 8px 8px 0 0;
+        }
+        .file-preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+        .file-preview img:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-md);
+        }
+        .file-remove {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            border: 2px solid white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        .file-remove:hover {
+            transform: scale(1.2);
+            background: #c0392b;
+        }
+        .edit-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+        .edit-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
+        }
+        .reaction-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            padding: 12px;
+        }
+        .reaction-option {
+            font-size: 1.75rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            text-align: center;
+        }
+        .reaction-option:hover {
+            transform: scale(1.3);
+            background: rgba(74, 158, 255, 0.15);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+        }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+        }
+        .form-control, .form-select {
+            background: var(--bg-color);
+            border: 2px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem 1rem;
+            transition: var(--transition);
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.15);
+        }
+        .dropdown-menu {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem;
+        }
+        .dropdown-item {
+            color: var(--text-color);
+            border-radius: var(--radius-sm);
+            padding: 0.5rem 1rem;
+            transition: var(--transition);
+        }
+        .dropdown-item:hover {
+            background: rgba(74, 158, 255, 0.1);
+            color: var(--primary-color);
+        }
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .custom-toast {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease-out;
+            border-left: 4px solid var(--primary-color);
+        }
+        .custom-toast.success { border-left-color: #2ecc71; }
+        .custom-toast.error { border-left-color: #e74c3c; }
+        .custom-toast.warning { border-left-color: #f39c12; }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            padding: 3rem;
+        }
+        .spinner-grow { color: var(--primary-color); }
+        .media-gallery {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .media-gallery.grid-1 { grid-template-columns: 1fr; }
+        .media-gallery.grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .media-gallery.grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .media-gallery.grid-4 { grid-template-columns: repeat(2, 1fr); }
+        .media-gallery img, .media-gallery video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .media-gallery img:hover, .media-gallery video:hover {
+            transform: scale(1.02);
+        }
+        .reaction-summary {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .reaction-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg-color);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .reaction-badge:hover {
+            background: rgba(74, 158, 255, 0.15);
+            transform: scale(1.05);
+        }
+        .reaction-users-popup {
+            position: absolute;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            min-width: 250px;
+        }
+        .reaction-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+        .reaction-user:hover {
+            background: rgba(74, 158, 255, 0.1);
+        }
+        .reply-indicator {
+            color: var(--primary-color);
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .schedule-info {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .login-container {
+            max-width: 420px;
+            margin: 80px auto;
+        }
+        .login-card {
+            padding: 2.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            background: var(--card-bg);
+            animation: fadeInUp 0.5s ease-out;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .text-muted { color: var(--text-muted) !important; }
+        .server-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: white;
+        }
+        .sidebar-card {
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        .menu-item:hover {
+            background: rgba(74, 158, 255, 0.1);
+            color: var(--primary-color);
+            transform: translateX(4px);
+        }
+        .menu-item i { font-size: 1.25rem; }
+        @media (max-width: 768px) {
+            .navbar-brand { font-size: 1rem; }
+            .note-avatar { width: 40px; height: 40px; }
+            .compose-textarea { min-height: 80px; }
+            .compose-toolbar { gap: 4px; }
+            .toolbar-btn { padding: 6px 10px; font-size: 0.9rem; }
+            .edit-btn { bottom: 20px; right: 20px; width: 50px; height: 50px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar navbar-expand-lg" v-if="isLoggedIn">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+                    <i class="bi bi-chat-quote"></i>
+                    <span>Misskey</span>
+                </a>
+                <span class="server-badge" id="serverUrlDisplay"></span>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="/compose" class="btn btn-light btn-sm rounded-circle nav-icon" title="Compose">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <a href="/drive" class="btn btn-light btn-sm rounded-circle nav-icon" title="Drive">
+                        <i class="bi bi-cloud"></i>
+                    </a>
+                    <a href="/settings" class="btn btn-light btn-sm rounded-circle nav-icon" title="Settings">
+                        <i class="bi bi-gear"></i>
+                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-white dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
+                            <img :src="user.avatarUrl" class="rounded-circle" style="width:36px;height:36px;">
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" @click.prevent="showProfileModal">
+                                <i class="bi bi-person me-2"></i> [[ t('profile') ]]
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" @click.prevent="logout">
+                                <i class="bi bi-box-arrow-right me-2"></i> [[ t('logout') ]]
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="toast-container" id="toastContainer"></div>
+
+        <div class="container mt-4">
+            <div v-if="!isLoggedIn" class="login-container">
+                <div class="card login-card">
+                    <h3 class="text-center mb-4 fw-bold">
+                        <i class="bi bi-chat-quote me-2" style="color: var(--primary-color);"></i> Misskey
+                    </h3>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Misskey Server</label>
+                        <input type="text" class="form-control" v-model="loginServerUrl" 
+                               placeholder="https://example.com">
+                    </div>
+                    <button class="btn btn-compose w-100" @click="startLogin" :disabled="loginLoading">
+                        <span v-if="loginLoading" class="spinner-border spinner-border-sm me-2"></span>
+                        <span v-else><i class="bi bi-box-arrow-in-right me-2"></i>Login</span>
+                    </button>
+                </div>
+            </div>
+
+            <div v-else>
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card mb-4">
+                            <div class="d-flex overflow-auto">
+                                <button class="tab-btn" :class="{active: currentTab === 'home'}" @click="switchTab('home')">
+                                    <i class="bi bi-house-door me-1"></i> [[ t('home') ]]
+                                </button>
+                                <button class="tab-btn" :class="{active: currentTab === 'local'}" @click="switchTab('local')">
+                                    <i class="bi bi-people me-1"></i> [[ t('local') ]]
+                                </button>
+                                <button class="tab-btn" :class="{active: currentTab === 'global'}" @click="switchTab('global')">
+                                    <i class="bi bi-globe me-1"></i> [[ t('global') ]]
+                                </button>
+                                <button class="tab-btn" :class="{active: currentTab === 'notifications'}" @click="switchTab('notifications')">
+                                    <i class="bi bi-bell me-1"></i> [[ t('notifications') ]]
+                                    <span v-if="unreadCount > 0" class="badge bg-danger ms-1">[[ unreadCount ]]</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="loading" class="loading-spinner">
+                            <div class="spinner-grow" role="status"></div>
+                        </div>
+
+                        <div v-else>
+                            <div v-if="currentTab === 'notifications'" class="card">
+                                <div v-for="notif in notifications" :key="notif.id" class="notification-item" 
+                                     :class="{unread: !notif.isRead}" @click="handleNotification(notif)">
+                                    <div class="d-flex align-items-start gap-3">
+                                        <img v-if="notif.user" :src="notif.user.avatarUrl" class="note-avatar" style="width:44px;height:44px;">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <i :class="getNotificationIcon(notif.type)" :style="{color: getNotificationColor(notif.type)}"></i>
+                                                <strong>[[ notif.user ? notif.user.name : notif.user ? notif.user.username : '' ]]</strong>
+                                            </div>
+                                            <div class="text-muted small">[[ getNotificationText(notif) ]]</div>
+                                            <small class="text-muted">[[ formatDate(notif.createdAt) ]]</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="notifications.length === 0" class="text-center text-muted p-5">
+                                    <i class="bi bi-bell-slash" style="font-size: 3rem; opacity: 0.5;"></i>
+                                    <p class="mt-3">[[ t('no_notifications') ]]</p>
+                                </div>
+                            </div>
+
+                            <div v-else>
+                                <div v-for="(note, index) in timeline" :key="note.id" class="card note-card mb-3 animate__animated animate__fadeInUp" 
+                                     :style="{animationDelay: (index * 0.05) + 's'}">
+                                    <div class="card-body">
+                                        <div class="d-flex gap-3">
+                                            <img :src="note.user.avatarUrl" class="note-avatar" @click="showNote(note)">
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <span class="note-username">[[ note.user.name || note.user.username ]]</span>
+                                                        <span class="note-acct">@[[ note.user.username ]]</span>
+                                                    </div>
+                                                    <small class="text-muted">[[ formatDate(note.createdAt) ]]</small>
+                                                </div>
+                                                
+                                                <div v-if="note.cw" class="cw-text mt-2" @click="note.cwExpanded = !note.cwExpanded">
+                                                    <i class="bi bi-eye-slash me-1"></i>[[ note.cw ]]
+                                                    <small v-if="!note.cwExpanded" class="text-muted ms-1">([[ t('click_to_show') ]])</small>
+                                                </div>
+                                                
+                                                <div class="note-content" v-if="!note.cw || note.cwExpanded" v-html="formatContent(note)"></div>
+                                                
+                                                <div v-if="note.files && note.files.length > 0" class="media-gallery" :class="'grid-' + Math.min(note.files.length, 4)">
+                                                    <img v-for="file in note.files" :key="file.id" 
+                                                         :src="file.thumbnailUrl || file.url" 
+                                                         @click="showMediaViewer(note.files, file)"
+                                                         :alt="file.name">
+                                                </div>
+                                                
+                                                <div v-if="note.renote" class="quote-note" @click.stop="showNote(note.renote)">
+                                                    <img :src="note.renote.user.avatarUrl" class="note-avatar" style="width:28px;height:28px;">
+                                                    <span class="note-username">[[ note.renote.user.name || note.renote.user.username ]]</span>
+                                                    <span class="note-acct">@[[ note.renote.user.username ]]</span>
+                                                    <div v-html="formatContent(note.renote, true)"></div>
+                                                </div>
+                                                
+                                                <div class="note-actions">
+                                                    <button class="note-action" @click="replyTo(note)">
+                                                        <i class="bi bi-reply"></i> [[ note.repliesCount || 0 ]]
+                                                    </button>
+                                                    <button class="note-action" :class="{renoted: note.renoteCount > 0}" @click="renote(note)">
+                                                        <i class="bi bi-repeat"></i> [[ note.renoteCount || 0 ]]
+                                                    </button>
+                                                    <button class="note-action" :class="{liked: note.myReaction}" @click="showReactionPicker(note)">
+                                                        <i class="bi bi-heart-fill" v-if="note.myReaction"></i>
+                                                        <i class="bi bi-heart" v-else></i>
+                                                        [[ getReactionCount(note) ]]
+                                                    </button>
+                                                    <button class="note-action" :class="{favorited: note.isFavorited}" @click="toggleFavorite(note)">
+                                                        <i class="bi bi-star-fill" v-if="note.isFavorited"></i>
+                                                        <i class="bi bi-star" v-else></i>
+                                                    </button>
+                                                    <button class="note-action" @click="showNote(note)">
+                                                        <i class="bi bi-arrow-right-circle"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div v-if="timeline.length === 0" class="card">
+                                    <div class="card-body text-center text-muted py-5">
+                                        <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.5;"></i>
+                                        <p class="mt-3">[[ t('no_notes') ]]</p>
+                                    </div>
+                                </div>
+
+                                <div v-if="hasMore" class="text-center p-4">
+                                    <button class="btn btn-outline-primary btn-compose" @click="loadMore">
+                                        <i class="bi bi-arrow-down me-1"></i> [[ t('load_more') ]]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="card sidebar-card mb-4">
+                            <div class="card-body">
+                                <div class="user-card" v-if="user">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <img :src="user.avatarUrl" class="user-avatar">
+                                        <div>
+                                            <div class="fw-bold" style="font-size: 1.1rem;">[[ user.name || user.username ]]</div>
+                                            <div class="opacity-75">@[[ user.username ]]</div>
+                                        </div>
+                                    </div>
+                                    <div v-if="user.description" class="mb-3 small opacity-90">
+                                        [[ user.description ]]
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <div class="text-center">
+                                            <div class="fw-bold">[[ user.followingCount || 0 ]]</div>
+                                            <small>[[ t('following') ]]</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="fw-bold">[[ user.followersCount || 0 ]]</div>
+                                            <small>[[ t('followers') ]]</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="fw-bold">[[ user.notesCount || 0 ]]</div>
+                                            <small>[[ t('notes') ]]</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" v-model="searchQuery" 
+                                           :placeholder="t('search_placeholder')" @keyup.enter="search">
+                                    <button class="btn btn-primary" @click="search">
+                                        <i class="bi bi-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4" v-if="searchResults.length > 0">
+                            <div class="card-header">
+                                <i class="bi bi-search me-2"></i> [[ t('search_results') ]]
+                            </div>
+                            <div class="list-group list-group-flush">
+                                <a href="#" v-for="result in searchResults" :key="result.id" 
+                                   class="list-group-item list-group-item-action" @click.prevent="showUser(result)">
+                                    <img :src="result.avatarUrl" style="width:36px;height:36px;border-radius:50%;" class="me-2">
+                                    [[ result.name || result.username ]]
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="card" v-if="trendingTags.length > 0">
+                            <div class="card-header">
+                                <i class="bi bi-hash me-2"></i> [[ t('trending') ]]
+                            </div>
+                            <div class="card-body">
+                                <span v-for="tag in trendingTags" :key="tag.tag" class="tag-badge" @click="addTag(tag.tag)">
+                                    #[[ tag.tag ]]
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <a v-if="isLoggedIn" href="/compose" class="edit-btn animate__animated animate__bounceIn" :title="t('compose')">
+            <i class="bi bi-pencil-square"></i>
+        </a>
+        
+        <div class="modal fade" id="noteModal" tabindex="-1" data-bs-backdrop="static">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content" v-if="selectedNote">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-chat-text me-2"></i>[[ t('note') ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex gap-3 mb-4">
+                            <img :src="selectedNote.user.avatarUrl" class="note-avatar">
+                            <div>
+                                <div class="note-username">[[ selectedNote.user.name || selectedNote.user.username ]]</div>
+                                <div class="note-acct">@[[ selectedNote.user.username ]]</div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="selectedNote.cw" class="cw-text mb-3" @click="selectedNote.cwExpanded = !selectedNote.cwExpanded">
+                            <i class="bi bi-eye-slash me-1"></i>[[ selectedNote.cw ]]
+                        </div>
+                        
+                        <div class="note-content mb-4" v-if="!selectedNote.cw || selectedNote.cwExpanded" v-html="formatContent(selectedNote)"></div>
+                        
+                        <div v-if="selectedNote.files && selectedNote.files.length > 0" class="mb-4">
+                            <div class="media-gallery" :class="'grid-' + Math.min(selectedNote.files.length, 4)">
+                                <img v-for="file in selectedNote.files" :key="file.id" 
+                                     :src="file.thumbnailUrl || file.url" 
+                                     @click="showMediaViewer(selectedNote.files, file)"
+                                     :alt="file.name">
+                            </div>
+                        </div>
+                        
+                        <div class="text-muted mb-4">
+                            <i class="bi bi-clock me-1"></i>[[ formatDate(selectedNote.createdAt) ]]
+                            <span v-if="selectedNote.updatedAt" class="ms-2">
+                                <i class="bi bi-pencil me-1"></i>[[ formatDate(selectedNote.updatedAt) ]]
+                            </span>
+                        </div>
+                        
+                        <div class="note-actions mb-4">
+                            <button class="note-action" @click="replyTo(selectedNote)">
+                                <i class="bi bi-reply"></i> [[ selectedNote.repliesCount || 0 ]]
+                            </button>
+                            <button class="note-action" :class="{renoted: selectedNote.renoteCount > 0}" @click="renote(selectedNote)">
+                                <i class="bi bi-repeat"></i> [[ selectedNote.renoteCount || 0 ]]
+                            </button>
+                            <button class="note-action" :class="{liked: selectedNote.myReaction}" @click="showReactionPicker(selectedNote)">
+                                <i class="bi bi-heart-fill" v-if="selectedNote.myReaction"></i>
+                                <i class="bi bi-heart" v-else></i>
+                                [[ getReactionCount(selectedNote) ]]
+                            </button>
+                            <button class="note-action" :class="{favorited: selectedNote.isFavorited}" @click="toggleFavorite(selectedNote)">
+                                <i class="bi bi-star-fill" v-if="selectedNote.isFavorited"></i>
+                                <i class="bi bi-star" v-else></i>
+                            </button>
+                        </div>
+                        
+                        <div v-if="selectedNote.reactions && Object.keys(selectedNote.reactions).length > 0" class="reaction-summary mb-4">
+                            <div v-for="(count, reaction) in selectedNote.reactions" :key="reaction" 
+                                 class="reaction-badge" @click="showReactionDetails(selectedNote, reaction)">
+                                <span>[[ reaction ]]</span>
+                                <span class="text-muted">[[ count ]]</span>
+                            </div>
+                        </div>
+                        
+                        <div v-if="selectedNote.replies && selectedNote.replies.length > 0">
+                            <h6 class="mb-3"><i class="bi bi-chat-dots me-2"></i>[[ t('replies') ]] ([[ selectedNote.replies.length ]])</h6>
+                            <div v-for="reply in selectedNote.replies" :key="reply.id" class="card mb-2">
+                                <div class="card-body py-2">
+                                    <div class="d-flex gap-2">
+                                        <img :src="reply.user.avatarUrl" class="note-avatar" style="width:32px;height:32px;">
+                                        <div>
+                                            <span class="note-username">[[ reply.user.name || reply.user.username ]]</span>
+                                            <span class="note-acct">@[[ reply.user.username ]]</span>
+                                            <div v-html="formatContent(reply)"></div>
+                                            <small class="text-muted">[[ formatDate(reply.createdAt) ]]</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @click="replyTo(selectedNote); closeNoteModal()">
+                            <i class="bi bi-reply me-1"></i> [[ t('reply') ]]
+                        </button>
+                        <button v-if="isMyNote(selectedNote)" class="btn btn-primary" @click="startEdit(selectedNote); closeNoteModal()">
+                            <i class="bi bi-pencil me-1"></i> [[ t('edit') ]]
+                        </button>
+                        <button v-if="isMyNote(selectedNote)" class="btn btn-danger" @click="deleteNote(selectedNote)">
+                            <i class="bi bi-trash me-1"></i> [[ t('delete') ]]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="profileModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-person me-2"></i>[[ t('profile_settings') ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">[[ t('display_name') ]]</label>
+                            <input type="text" class="form-control" v-model="profileData.name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">[[ t('bio') ]]</label>
+                            <textarea class="form-control" v-model="profileData.description" rows="4"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">[[ t('location') ]]</label>
+                            <input type="text" class="form-control" v-model="profileData.location">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">[[ t('birthday') ]]</label>
+                            <input type="date" class="form-control" v-model="profileData.birthday">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @click="saveProfile" :disabled="profileSaving">
+                            <span v-if="profileSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <span v-else><i class="bi bi-check-lg me-1"></i></span>[[ t('save') ]]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="editModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>[[ t('edit_note') ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea class="form-control" v-model="editingNoteText" rows="6"></textarea>
+                        <div class="mt-3">
+                            <input type="text" class="form-control" v-model="editingNoteCw" :placeholder="t('cw_placeholder')">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">[[ t('cancel') ]]</button>
+                        <button class="btn btn-primary" @click="saveEditedNote" :disabled="editSaving">
+                            <span v-if="editSaving" class="spinner-border spinner-border-sm me-1"></span>
+                            <span v-else><i class="bi bi-check-lg me-1"></i></span>[[ t('save') ]]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="filePickerModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-paperclip me-2"></i>[[ t('add_file') ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">[[ t('choose_file') ]]</label>
+                            <input type="file" class="form-control" @change="handleFileSelect" multiple>
+                        </div>
+                        <div v-if="driveFiles.length > 0" class="mt-4">
+                            <h6><i class="bi bi-cloud me-2"></i>[[ t('drive_files') ]]</h6>
+                            <div class="d-flex flex-wrap gap-3 mt-3">
+                                <div v-for="file in driveFiles" :key="file.id" 
+                                     class="p-2 border rounded cursor-pointer" 
+                                     style="cursor:pointer;transition:var(--transition)"
+                                     @click="selectDriveFile(file)"
+                                     @mouseover="$event.currentTarget.style.borderColor='var(--primary-color)'"
+                                     @mouseout="$event.currentTarget.style.borderColor=''">
+                                    <img v-if="file.type && file.type.startsWith('image/')" 
+                                         :src="file.thumbnailUrl || file.url" 
+                                         style="width:80px;height:80px;object-fit:cover;border-radius:8px;">
+                                    <div v-else style="width:80px;height:80px;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--text-muted);">
+                                        <i class="bi bi-file-earmark"></i>
+                                    </div>
+                                    <div class="small text-truncate mt-1" style="max-width:80px;">[[ file.name ]]</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="tagInputModal" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-hash me-2"></i>[[ t('add_tag') ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" class="form-control" v-model="newTag" @keyup.enter="confirmAddTag">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @click="confirmAddTag">[[ t('add') ]]</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="scheduleModal" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-clock me-2"></i>[[ t('schedule_post') ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">[[ t('date_time') ]]</label>
+                        <input type="datetime-local" class="form-control" v-model="scheduleDatetime">
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @click="cancelSchedule">[[ t('cancel') ]]</button>
+                        <button class="btn btn-primary" @click="confirmSchedule">[[ t('schedule') ]]</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="reactionPickerModal" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">[[ t('add_reaction') ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="reaction-picker-grid">
+                            <span v-for="reaction in availableReactions" :key="reaction" 
+                                  class="reaction-option" @click="selectReaction(reaction)">
+                                [[ reaction ]]
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="reactionDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">[[ selectedReaction ]]</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+                        <div v-if="reactionUsersLoading" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm"></div>
+                        </div>
+                        <div v-else>
+                            <div v-for="user in reactionUsers" :key="user.id" class="reaction-user">
+                                <img :src="user.avatarUrl" class="note-avatar" style="width:36px;height:36px;">
+                                <div>
+                                    <div class="fw-semibold">[[ user.name || user.username ]]</div>
+                                    <small class="text-muted">@[[ user.username ]]</small>
+                                </div>
+                            </div>
+                            <div v-if="reactionUsers.length === 0" class="text-center text-muted py-3">
+                                [[ t('no_reactions') ]]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal fade" id="mediaViewerModal" tabindex="-1" data-bs-backdrop="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content bg-dark">
+                    <div class="modal-body text-center p-0">
+                        <img v-if="viewingMedia && viewingMedia.type && viewingMedia.type.startsWith('image/')" 
+                             :src="viewingMedia.url" class="img-fluid" style="max-height:80vh;">
+                        <video v-else-if="viewingMedia && viewingMedia.type && viewingMedia.type.startsWith('video/')" 
+                               :src="viewingMedia.url" controls style="max-height:80vh;max-width:100%;"></video>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script>
+        const { createApp } = Vue;
+        const serverUrlFromJinja = "{{ serverUrl|default('') }}";
+
+        const translations = {
+            en: {
+                'profile': 'Profile', 'logout': 'Logout', 'placeholder': "What's happening?",
+                'replying_to': 'Replying to', 'public': 'Public', 'home': 'Home',
+                'followers': 'Followers', 'specified': 'Specified', 'post': 'Post',
+                'no_notifications': 'No notifications yet', 'click_to_show': 'click to show',
+                'no_notes': 'No notes yet', 'load_more': 'Load More', 'following': 'Following',
+                'search': 'Search', 'search_placeholder': 'Search users...', 'search_results': 'Search Results',
+                'trending': 'Trending', 'note': 'Note', 'replies': 'Replies', 'reply': 'Reply',
+                'edit': 'Edit', 'delete': 'Delete', 'settings': 'Settings', 'language': 'Language', 'compose': 'Compose',
+                'theme': 'Theme', 'light': 'Light', 'dark': 'Dark', 'save': 'Save',
+                'profile_settings': 'Profile Settings', 'display_name': 'Display Name', 'bio': 'Bio',
+                'location': 'Location', 'birthday': 'Birthday', 'edit_note': 'Edit Note',
+                'cancel': 'Cancel', 'add_file': 'Add File', 'choose_file': 'Choose file',
+                'drive_files': 'Drive Files', 'add_tag': 'Add Tag', 'tag_placeholder': 'Enter tag',
+                'add': 'Add', 'schedule_post': 'Schedule Post', 'date_time': 'Date & Time',
+                'schedule': 'Schedule', 'scheduled_for': 'Scheduled for', 'cw_placeholder': 'Content warning',
+                'add_reaction': 'Add Reaction', 'notes': 'Notes', 'bold': 'Bold', 'italic': 'Italic',
+                'strike': 'Strikethrough', 'code': 'Code', 'codeblock': 'Code Block',
+                'link': 'Link', 'ruby': 'Ruby', 'center': 'Center', 'quote': 'Quote',
+                'file': 'File', 'tag': 'Tag', 'schedule': 'Schedule', 'cw': 'CW',
+                'no_reactions': 'No reactions yet', 'followed_you': 'followed you',
+                'mentioned_you': 'mentioned you', 'replied_to_you': 'replied to you',
+                'renoted_your_note': 'renoted your note', 'reacted_to_your_note': 'reacted to your note',
+                'favorited_your_note': 'favorited your note'
+            },
+            'zh-CN': {
+                'profile': '个人资料', 'logout': '退出', 'placeholder': '分享新鲜事...',
+                'replying_to': '回复', 'public': '公开', 'home': '主页', 'followers': '关注者',
+                'specified': '指定', 'post': '发布', 'no_notifications': '暂无通知',
+                'click_to_show': '点击展开', 'no_notes': '暂无帖子', 'load_more': '加载更多',
+                'following': '关注', 'search': '搜索', 'search_placeholder': '搜索用户...',
+                'search_results': '搜索结果', 'trending': '热门', 'note': '帖子', 'replies': '回复',
+                'reply': '回复', 'edit': '编辑', 'delete': '删除', 'settings': '设置', 'compose': '发布',
+                'language': '语言', 'theme': '主题', 'light': '浅色', 'dark': '深色', 'save': '保存',
+                'profile_settings': '资料设置', 'display_name': '显示名称', 'bio': '简介',
+                'location': '位置', 'birthday': '生日', 'edit_note': '编辑帖子', 'cancel': '取消',
+                'add_file': '添加文件', 'choose_file': '选择文件', 'drive_files': '网盘文件',
+                'add_tag': '添加标签', 'tag_placeholder': '输入标签', 'add': '添加',
+                'schedule_post': '定时发布', 'date_time': '日期时间', 'schedule': '定时',
+                'scheduled_for': '计划发布于', 'cw_placeholder': '内容警告', 'add_reaction': '添加反应',
+                'notes': '帖子', 'bold': '粗体', 'italic': '斜体', 'strike': '删除线',
+                'code': '代码', 'codeblock': '代码块', 'link': '链接', 'ruby': '注音',
+                'center': '居中', 'quote': '引用', 'file': '文件', 'tag': '标签',
+                'schedule': '定时', 'cw': '警告', 'no_reactions': '暂无反应',
+                'followed_you': '关注了你', 'mentioned_you': '提到了你',
+                'replied_to_you': '回复了你', 'renoted_your_note': '转发了你的帖子',
+                'reacted_to_your_note': '对你的帖子表态了', 'favorited_your_note': '收藏了你的帖子'
+            }
+        };
+
+        const toastTypes = {
+            success: 'bi-check-circle-fill',
+            error: 'bi-x-circle-fill',
+            warning: 'bi-exclamation-triangle-fill',
+            info: 'bi-info-circle-fill'
+        };
+
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `custom-toast ${type} animate__animated animate__fadeInRight`;
+            toast.innerHTML = `
+                <i class="bi ${toastTypes[type]}" style="font-size:1.5rem;color:var(--primary-color)"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.add('animate__fadeOutRight');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        async function dbInit() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('MisskeyClientDB', 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                    if (!db.objectStoreNames.contains('cache')) {
+                        db.createObjectStore('cache', { keyPath: 'key' });
+                    }
+                    if (!db.objectStoreNames.contains('sessions')) {
+                        db.createObjectStore('sessions', { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+
+        async function dbGet(storeName, key) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('MisskeyClientDB', 1);
+                request.onsuccess = () => {
+                    const db = request.result;
+                    const tx = db.transaction(storeName, 'readonly');
+                    const store = tx.objectStore(storeName);
+                    const getRequest = store.get(key);
+                    getRequest.onsuccess = () => resolve(getRequest.result?.value);
+                    getRequest.onerror = () => reject(getRequest.error);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function dbPut(storeName, key, value) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('MisskeyClientDB', 1);
+                request.onsuccess = () => {
+                    const db = request.result;
+                    const tx = db.transaction(storeName, 'readwrite');
+                    const store = tx.objectStore(storeName);
+                    store.put({ key, value });
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        createApp({
+            delimiters: ['[[', ']]'],
+            data() {
+                return {
+                    isLoggedIn: false, user: null, serverUrl: serverUrlFromJinja, loginServerUrl: '', loginLoading: false,
+                    timeline: [], notifications: [], loading: false, posting: false, currentTab: 'home',
+                    composeText: '', composeVisibility: 'public', composeCw: '', composeFiles: [],
+                    composeTags: [], scheduledTime: null, hasMore: true, untilId: null,
+                    searchQuery: '', searchResults: [], selectedNote: null, noteModal: null,
+                    showCwInput: false, showFilePicker: false, showTagInput: false, showScheduleInput: false,
+                    settings: { language: 'en', theme: 'light' }, profileData: {}, profileSaving: false,
+                    editingNote: null, editingNoteText: '', editingNoteCw: '', editSaving: false,
+                    driveFiles: [], newTag: '', scheduleDatetime: '', trendingTags: [],
+                    availableReactions: ['👍', '❤️', '😆', '😮', '😢', '😠', '👎', '🎉', '🍕', '🐦', '😻', '💯'],
+                    reactingNote: null, selectedReaction: '', reactionUsers: [], reactionUsersLoading: false,
+                    viewingMedia: null, unreadCount: 0
+                }
+            },
+            computed: {
+                canPost() {
+                    return (this.composeText.trim() || this.composeFiles.length > 0) && !this.posting;
+                }
+            },
+            watch: {
+                'settings.theme'(newTheme) {
+                    if (newTheme === 'dark') document.body.classList.add('dark-theme');
+                    else document.body.classList.remove('dark-theme');
+                    dbPut('settings', 'theme', newTheme);
+                },
+                'settings.language'() {
+                    dbPut('settings', 'language', this.settings.language);
+                }
+            },
+            async mounted() {
+                await dbInit();
+                await this.loadSettings();
+                await this.checkLogin();
+                if (this.isLoggedIn) {
+                    await this.loadTimeline();
+                    await this.loadTrendingTags();
+                    await this.loadReactions();
+                }
+            },
+            methods: {
+                t(key) { return translations[this.settings.language]?.[key] || translations.en[key] || key; },
+                
+                async loadSettings() {
+                    try {
+                        const theme = await dbGet('settings', 'theme');
+                        const language = await dbGet('settings', 'language');
+                        if (theme) this.settings.theme = theme;
+                        if (language) this.settings.language = language;
+                        if (this.settings.theme === 'dark') document.body.classList.add('dark-theme');
+                    } catch (e) { console.error(e); }
+                },
+                
+                async checkLogin() {
+                    try {
+                        const res = await fetch('/api/login/status');
+                        const data = await res.json();
+                        if (data.logged_in) {
+                            this.isLoggedIn = true;
+                            this.user = data.user;
+                            this.serverUrl = data.server_url;
+                            document.getElementById('serverUrlDisplay').textContent = this.serverUrl;
+                        }
+                    } catch (e) { console.error(e); }
+                },
+                
+                async startLogin() {
+                    if (!this.loginServerUrl) { showToast('Please enter server URL', 'warning'); return; }
+                    this.loginLoading = true;
+                    try {
+                        const res = await fetch('/api/login/start', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({server_url: this.loginServerUrl})
+                        });
+                        const data = await res.json();
+                        if (data.auth_url) window.location.href = data.auth_url;
+                        else if (data.error) showToast(data.error.message || data.error, 'error');
+                    } catch (e) { showToast('Login failed: ' + e, 'error'); }
+                    this.loginLoading = false;
+                },
+                
+                async logout() {
+                    await fetch('/api/logout', {method: 'POST'});
+                    this.isLoggedIn = false;
+                    this.user = null;
+                    this.timeline = [];
+                    showToast('Logged out successfully', 'success');
+                },
+                
+                async loadTimeline() {
+                    this.loading = true;
+                    this.timeline = [];
+                    this.untilId = null;
+                    try {
+                        const url = `/api/notes/timeline?type=${this.currentTab}`;
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        if (Array.isArray(data)) {
+                            this.timeline = data;
+                            this.hasMore = data.length >= 20;
+                            if (this.hasMore) this.untilId = data[data.length - 1].id;
+                        }
+                    } catch (e) { console.error(e); }
+                    this.loading = false;
+                },
+                
+                async loadMore() {
+                    if (!this.untilId) return;
+                    try {
+                        const url = `/api/notes/timeline?type=${this.currentTab}&until_id=${this.untilId}`;
+                        const res = await fetch(url);
+                        const data = await res.json();
+                        if (Array.isArray(data)) {
+                            this.timeline.push(...data);
+                            this.hasMore = data.length >= 20;
+                            if (this.hasMore) this.untilId = data[data.length - 1].id;
+                        }
+                    } catch (e) { console.error(e); }
+                },
+                
+                async loadNotifications() {
+                    this.loading = true;
+                    try {
+                        const res = await fetch('/api/notifications');
+                        const data = await res.json();
+                        if (Array.isArray(data)) {
+                            this.notifications = data;
+                            this.unreadCount = data.filter(n => !n.isRead).length;
+                        }
+                    } catch (e) { console.error(e); }
+                    this.loading = false;
+                },
+                
+                switchTab(tab) {
+                    this.currentTab = tab;
+                    this.searchResults = [];
+                    if (tab === 'notifications') this.loadNotifications();
+                    else this.loadTimeline();
+                },
+                
+                async postNote() {
+                    if (!this.canPost) return;
+                    this.posting = true;
+                    try {
+                        let endpoint = '/api/notes/create';
+                        let body = { text: this.composeText, visibility: this.composeVisibility };
+                        if (this.composeCw) body.cw = this.composeCw;
+                        if (this.composeFiles.length > 0) body.fileIds = this.composeFiles.map(f => f.id);
+                        if (this.composeTags.length > 0) body.text += this.composeTags.map(t => ` #${t}`).join('');
+                        if (this.replyToNote) body.replyId = this.replyToNote.id;
+                        if (this.scheduledTime) { endpoint = '/api/notes/schedule'; body.scheduled_at = this.scheduledTime; }
+                        
+                        const res = await fetch(endpoint, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(body)
+                        });
+                        const data = await res.json();
+                        if (!data.error) {
+                            showToast(this.scheduledTime ? 'Note scheduled!' : 'Note posted!', 'success');
+                            this.composeText = ''; this.composeCw = ''; this.composeFiles = [];
+                            this.composeTags = []; this.scheduledTime = null; this.replyToNote = null;
+                            await this.loadTimeline();
+                        } else { showToast(data.error, 'error'); }
+                    } catch (e) { showToast('Failed to post: ' + e, 'error'); }
+                    this.posting = false;
+                },
+                
+                insertMFM(before, after) {
+                    const textarea = document.getElementById('composeTextarea');
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const text = this.composeText;
+                    const selected = text.substring(start, end);
+                    this.composeText = text.substring(0, start) + before + selected + after + text.substring(end);
+                    this.$nextTick(() => {
+                        textarea.focus();
+                        textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
+                    });
+                },
+                
+                async handleFileSelect(event) {
+                    for (let i = 0; i < event.target.files.length; i++) {
+                        await this.uploadFile(event.target.files[i]);
+                    }
+                },
+                
+                async uploadFile(file) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch('/api/drive/files/create', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (!data.error) this.composeFiles.push(data);
+                        else showToast(data.error, 'error');
+                    } catch (e) { showToast('Upload failed: ' + e, 'error'); }
+                    bootstrap.Modal.getInstance(document.getElementById('filePickerModal'))?.hide();
+                },
+                
+                async loadDriveFiles() {
+                    try {
+                        const res = await fetch('/api/drive/files');
+                        const data = await res.json();
+                        if (Array.isArray(data)) this.driveFiles = data.slice(0, 30);
+                    } catch (e) { console.error(e); }
+                },
+                
+                selectDriveFile(file) {
+                    this.composeFiles.push(file);
+                    bootstrap.Modal.getInstance(document.getElementById('filePickerModal'))?.hide();
+                },
+                
+                removeFile(index) { this.composeFiles.splice(index, 1); },
+                
+                confirmAddTag() {
+                    if (this.newTag.trim()) this.addTag(this.newTag.trim());
+                    bootstrap.Modal.getInstance(document.getElementById('tagInputModal'))?.hide();
+                },
+                
+                addTag(tag) {
+                    if (!this.composeTags.includes(tag)) this.composeTags.push(tag);
+                },
+                
+                removeTag(tag) {
+                    const index = this.composeTags.indexOf(tag);
+                    if (index > -1) this.composeTags.splice(index, 1);
+                },
+                
+                confirmSchedule() {
+                    if (this.scheduleDatetime) this.scheduledTime = new Date(this.scheduleDatetime).toISOString();
+                    bootstrap.Modal.getInstance(document.getElementById('scheduleModal'))?.hide();
+                },
+                
+                cancelSchedule() {
+                    this.scheduledTime = null;
+                    bootstrap.Modal.getInstance(document.getElementById('scheduleModal'))?.hide();
+                },
+                
+                formatScheduleTime(isoString) { return new Date(isoString).toLocaleString(); },
+                
+                async loadTrendingTags() {
+                    try {
+                        const res = await fetch('/api/hashtags/trend');
+                        const data = await res.json();
+                        if (Array.isArray(data)) this.trendingTags = data.slice(0, 10);
+                    } catch (e) { console.error(e); }
+                },
+                
+                async loadReactions() {
+                    try {
+                        const res = await fetch('/api/reactions');
+                        const data = await res.json();
+                        if (data.reactions) this.availableReactions = data.reactions;
+                    } catch (e) { console.error(e); }
+                },
+                
+                async toggleReaction(note, reaction = '👍') {
+                    try {
+                        if (note.myReaction) {
+                            await fetch('/api/notes/unreact', {
+                                method: 'POST', headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({note_id: note.id})
+                            });
+                            note.myReaction = null;
+                        } else {
+                            const res = await fetch('/api/notes/react', {
+                                method: 'POST', headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({note_id: note.id, reaction})
+                            });
+                            const data = await res.json();
+                            if (!data.error) note.myReaction = reaction;
+                        }
+                    } catch (e) { console.error(e); }
+                },
+                
+                showReactionPicker(note) {
+                    if (note.myReaction) this.toggleReaction(note);
+                    else { this.reactingNote = note; new bootstrap.Modal(document.getElementById('reactionPickerModal')).show(); }
+                },
+                
+                selectReaction(reaction) {
+                    if (this.reactingNote) this.toggleReaction(this.reactingNote, reaction);
+                    bootstrap.Modal.getInstance(document.getElementById('reactionPickerModal'))?.hide();
+                    this.reactingNote = null;
+                },
+                
+                async showReactionDetails(note, reaction) {
+                    this.selectedReaction = reaction;
+                    this.reactionUsers = [];
+                    this.reactionUsersLoading = true;
+                    new bootstrap.Modal(document.getElementById('reactionDetailsModal')).show();
+                    try {
+                        const res = await fetch(`/api/notes/reactions?note_id=${note.id}&type=${encodeURIComponent(reaction)}`);
+                        const data = await res.json();
+                        if (Array.isArray(data)) this.reactionUsers = data.map(r => r.user).filter(u => u);
+                    } catch (e) { console.error(e); }
+                    this.reactionUsersLoading = false;
+                },
+                
+                getReactionCount(note) {
+                    if (note.reactions) {
+                        let total = 0;
+                        for (let key in note.reactions) total += note.reactions[key];
+                        return total || note.reactionCount || 0;
+                    }
+                    return note.reactionCount || 0;
+                },
+                
+                async renote(note) {
+                    try {
+                        await fetch('/api/notes/renote', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({note_id: note.id})
+                        });
+                        note.renoteCount = (note.renoteCount || 0) + 1;
+                        showToast('Renoted!', 'success');
+                    } catch (e) { console.error(e); }
+                },
+                
+                async toggleFavorite(note) {
+                    try {
+                        const endpoint = note.isFavorited ? '/api/notes/unfavorite' : '/api/notes/favorite';
+                        const res = await fetch(endpoint, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({note_id: note.id})
+                        });
+                        const data = await res.json();
+                        if (!data.error) note.isFavorited = !note.isFavorited;
+                    } catch (e) { console.error(e); }
+                },
+                
+                async search() {
+                    if (!this.searchQuery.trim()) return;
+                    try {
+                        const res = await fetch(`/api/users/search?q=${encodeURIComponent(this.searchQuery)}`);
+                        const data = await res.json();
+                        if (Array.isArray(data)) this.searchResults = data;
+                    } catch (e) { console.error(e); }
+                },
+                
+                async showNote(note) {
+                    try {
+                        const res = await fetch(`/api/notes/thread?id=${note.id}`);
+                        const data = await res.json();
+                        if (data.note) {
+                            this.selectedNote = data.note;
+                            this.selectedNote.replies = data.replies || [];
+                        }
+                    } catch (e) { console.error(e); this.selectedNote = note; }
+                    if (!this.noteModal) this.noteModal = new bootstrap.Modal(document.getElementById('noteModal'));
+                    this.noteModal.show();
+                },
+                
+                closeNoteModal() { this.noteModal?.hide(); },
+                
+                handleNotification(notif) {
+                    if (notif.note) this.showNote(notif.note);
+                    else if (notif.user) this.showUser(notif.user);
+                },
+                
+                getNotificationIcon(type) {
+                    const icons = { follow: 'bi-person-plus', mention: 'bi-at', reply: 'bi-reply',
+                        renote: 'bi-repeat', quote: 'bi-quote', reaction: 'bi-heart', favorite: 'bi-star' };
+                    return 'bi ' + (icons[type] || 'bi-bell');
+                },
+                
+                getNotificationColor(type) {
+                    const colors = { follow: '#2ecc71', mention: '#9b59b6', reply: '#3498db',
+                        renote: '#2ecc71', reaction: '#e74c3c', favorite: '#f39c12' };
+                    return colors[type] || '#95a5a6';
+                },
+                
+                getNotificationText(notif) {
+                    const texts = {
+                        follow: this.t('followed_you'), mention: this.t('mentioned_you'),
+                        reply: this.t('replied_to_you'), renote: this.t('renoted_your_note'),
+                        reaction: this.t('reacted_to_your_note'), favorite: this.t('favorited_your_note')
+                    };
+                    return texts[notif.type] || notif.type;
+                },
+                
+                showUser(user) { showToast(`User: ${user.name || user.username}\n@${user.username}`, 'info'); },
+                
+                formatDate(dateStr) {
+                    const date = new Date(dateStr);
+                    const diff = Date.now() - date.getTime();
+                    if (diff < 60000) return 'just now';
+                    if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+                    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h';
+                    if (diff < 604800000) return Math.floor(diff / 86400000) + 'd';
+                    return date.toLocaleDateString();
+                },
+                
+                formatContent(note, isRenote = false) {
+                    let text = note.text || '';
+                    text = text.replace(/https?:\/\/[^\s]+/g, '<a class="link" href="$&" target="_blank">$&</a>');
+                    text = text.replace(/#[^\s]+/g, m => `<a class="hashtag" href="#">${m}</a>`);
+                    text = text.replace(/@[a-zA-Z0-9_]+@[a-zA-Z0-9_.-]+/g, m => `<a class="mention" href="#">${m}</a>`);
+                    text = text.replace(/@[a-zA-Z0-9_]+/g, m => `<a class="mention" href="#">${m}</a>`);
+                    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                    text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    text = text.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+                    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+                    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a class="link" href="$2" target="_blank">$1</a>');
+                    text = text.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+                    return text;
+                },
+                
+                replyTo(note) { this.replyToNote = note; this.composeText = `@${note.user.username} `; },
+                
+                isMyNote(note) { return this.user && note.user && note.user.id === this.user.id; },
+                
+                startEdit(note) {
+                    this.editingNote = note;
+                    this.editingNoteText = note.text || '';
+                    this.editingNoteCw = note.cw || '';
+                },
+                
+                openEditModal() { if (this.editingNote) this.startEdit(this.editingNote); new bootstrap.Modal(document.getElementById('editModal')).show(); },
+                
+                async saveEditedNote() {
+                    if (!this.editingNote) return;
+                    this.editSaving = true;
+                    try {
+                        const res = await fetch('/api/notes/update', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ note_id: this.editingNote.id, text: this.editingNoteText, cw: this.editingNoteCw || null })
+                        });
+                        const data = await res.json();
+                        if (!data.error) {
+                            this.editingNote.text = this.editingNoteText;
+                            this.editingNote.cw = this.editingNoteCw;
+                            bootstrap.Modal.getInstance(document.getElementById('editModal'))?.hide();
+                            showToast('Note updated!', 'success');
+                            await this.loadTimeline();
+                        } else { showToast(data.error, 'error'); }
+                    } catch (e) { showToast('Failed to save: ' + e, 'error'); }
+                    this.editSaving = false;
+                },
+                
+                async deleteNote(note) {
+                    if (!confirm('Are you sure you want to delete this note?')) return;
+                    try {
+                        const res = await fetch('/api/notes/delete', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({note_id: note.id})
+                        });
+                        const data = await res.json();
+                        if (!data.error) {
+                            this.closeNoteModal();
+                            showToast('Note deleted!', 'success');
+                            await this.loadTimeline();
+                        } else { showToast(data.error, 'error'); }
+                    } catch (e) { showToast('Failed to delete: ' + e, 'error'); }
+                },
+                
+                showMediaViewer(files, file) {
+                    this.viewingMedia = file;
+                    new bootstrap.Modal(document.getElementById('mediaViewerModal')).show();
+                },
+                
+                showProfileModal() {
+                    this.loadProfileData();
+                    new bootstrap.Modal(document.getElementById('profileModal')).show();
+                },
+                
+                async loadProfileData() {
+                    try {
+                        const res = await fetch('/api/i');
+                        const data = await res.json();
+                        if (data) this.profileData = { name: data.name || '', description: data.description || '', location: data.location || '', birthday: data.birthday || '' };
+                    } catch (e) { console.error(e); }
+                },
+                
+                async saveProfile() {
+                    this.profileSaving = true;
+                    try {
+                        const res = await fetch('/api/users/profile', {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(this.profileData)
+                        });
+                        const data = await res.json();
+                        if (!data.error) {
+                            bootstrap.Modal.getInstance(document.getElementById('profileModal'))?.hide();
+                            showToast('Profile saved!', 'success');
+                            await this.checkLogin();
+                        } else { showToast(data.error, 'error'); }
+                    } catch (e) { showToast('Failed to save: ' + e, 'error'); }
+                    this.profileSaving = false;
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
